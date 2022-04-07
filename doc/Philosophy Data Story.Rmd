@@ -1,0 +1,290 @@
+---
+title: "Philosophy Data Story"
+author: "Ananya Iyer"
+date: "02/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#WHAT IS PHILOSPHY?
+
+The term "philosophy" means, "love of wisdom."  
+
+Philosophy, in its broadest definition, is an activity in which individuals strive to understand fundamental truths about themselves, the world in which they live, and their relationships to the world and to one another. The philosophy of each academic area is very similar. Philosophy students are always asking, replying, and arguing for their answers to life's most fundamental issues.
+
+Plato (c. 428–c. 348 BCE) and Aristotle (384–322 BCE) are two of Western philosophy's most well-known and studied figures. Plato was a student of Socrates, and Aristotle was Plato's student. As a result, we can see some parallels in their philosophy.
+
+The aim of this story is to potray a contrast in their philosophies by doing some text mining analysis. 
+
+```{r }
+library(tidyverse)
+library(tidytext)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(wordcloud)
+library(tm)
+library(topicmodels)
+library(RColorBrewer)
+
+```
+
+
+```{r}
+d=read.csv("philosophy_data.csv")
+
+```
+```{r}
+plato = subset(d, school == "plato")
+aristotle=subset(d, school=="aristotle")
+```
+
+
+Plato is considered a pivotal figure in Ancient Greek and Western Philosophy. His teacher was the renowned Socrates. Plato is also considered to be one of the founders of Western Religion and spirituality. 
+
+Aristotle was a Greek philosopher and polymath during the Classial period in Ancient Greece. He was a pupil of Plato.
+
+
+We start of by visually depicting the frequency of words used by both philosophers in their texts.
+
+```{r}
+tidy_plato <- plato %>% 
+  unnest_tokens(word, sentence_str) %>%
+  anti_join(stop_words) %>%
+  count(word) %>% 
+  filter(n > 300)
+
+ggplot(tidy_plato, aes(x = reorder(word,n), y = n)) + xlab("Frequency of words") + ylab("Words") + ggtitle("Frequency of words used by Plato") +
+  geom_col() +
+  coord_flip()
+
+tidy_aristotle <- aristotle %>% 
+  unnest_tokens(word, sentence_str) %>%
+  anti_join(stop_words) %>%
+  count(word) %>% 
+  filter(n > 600)
+
+
+ggplot(tidy_aristotle, aes(x = reorder(word,n), y = n)) + xlab("Frequency of words") + ylab("Words") + ggtitle("Frequency of words used by Aristotle") +
+  geom_col() +
+  # Flip the plot coordinates
+  coord_flip()
+```
+Although there are similarities in the frequency of words being used, we can see a few comparisons in what might have been their thought process while writing the texts. 
+
+In the instance of Plato, his most frequently used word is Socrates. This can signify his devotion and love for his teacher. It is said that Plato never speaks in his own dialogues and speaks as Socrates in most of his texts. 
+His usage of other words such as soul, people, time, knowledge, god shows how Plato's philosophy is more abstract and mystical.
+
+In the instance of Aristotle, his most frequently used word is animals. His other most frequently used words are nature, body, sense, movement, water. This can suggest that apart from philosophy, Aristotle also investifates areas of science. Aristotle's philosophy is more practical in nature.
+
+Although Aristotle revered his teacher Plato, this shows the tangent with which Aristotle deiviated from Plato's teachings.
+
+The frequency of words can also be visualised by the word clouds below- 
+
+```{r}
+wordcloud(words =tidy_plato$word, freq=tidy_plato$n, max.words =100, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+```{r}
+
+```
+
+```{r}
+wordcloud(words =tidy_aristotle$word, freq=tidy_aristotle$n, max.words =100, 
+          colors=brewer.pal(8, "Dark2"))
+```
+#SENTIMENT ANALYSIS
+
+Using sentiment analysis, we can see that both Plato and Aristotle texts were quite negative in nature followed by positive, fear, trust and anger. 
+This depicts the similarities in their teachings. 
+
+The most commonly used negative word is bad, followed by unjust, war, death, in the instance of Plato. This depicts his empathetic side showing sympathy for the conditions that were prevalent during that time. The most commonly used positive word is knowledge. Plato considered knowledge to be one's greatest virtue which he preached in his teachings. 
+
+The most commonly used negative word is contrary, followed by impossible, argument, government in the instance of Aristotle. This depicts the contrast between their schools of thought as Aristotle seems to deal with the more practical aspect of the conditions that were prevalent during that time.  The most commonly used positive word is reason, sense, nature. This shows how Aristotle was also inclined towards the scientific nature of things.  
+
+```{r}
+tidy_plato <- plato %>% 
+  unnest_tokens(word, sentence_str) %>%
+  anti_join(stop_words) %>%
+  count(word)
+
+sentiment_plato= tidy_plato %>%
+  inner_join(get_sentiments("nrc")) %>% 
+  filter(sentiment %in% c("negative", "positive", "fear","trust","anger"))
+
+sentiment_plato %>% 
+  count(sentiment) %>% 
+  # Arrange the sentiment counts in descending order
+  arrange(desc(n))
+```
+
+```{r}
+sentiment_plato %>%
+  group_by(sentiment) %>%
+  # Take the top 10 words for each sentiment
+  top_n(10, n) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  # Set up the plot with aes()
+  ggplot(aes(word,n, fill=sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  coord_flip()
+```
+
+```{r}
+tidy_aristotle <- aristotle %>% 
+  unnest_tokens(word, sentence_str) %>%
+  anti_join(stop_words) %>%
+  count(word)
+sentiment_aristotle= tidy_aristotle %>%
+  inner_join(get_sentiments("nrc")) %>% 
+  filter(sentiment %in% c("negative", "positive", "fear","trust","anger"))
+
+# Count the sentiments in sentiment_aristotle
+sentiment_aristotle %>% 
+  count(sentiment) %>% 
+  # Arrange the sentiment counts in descending order
+  arrange(desc(n))
+
+```
+
+```{r}
+sentiment_aristotle %>%
+  group_by(sentiment) %>%
+  # Take the top 10 words for each sentiment
+  top_n(10, n) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  # Set up the plot with aes()
+  ggplot(aes(word,n, fill=sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  coord_flip()
+```
+#TOPIC MODELLING
+
+Using topic modelling, we want to analyse the most common topics that Plato and Aristotle wrote in their teachings. 
+
+For Plato, we can cateogorize his topics as -
+Topic 1- Spirituality
+Topic 2- Human Nature
+Topic 3- People
+
+For Aristotle, we can categorize his topics as- 
+Topic 1- Environment
+Topic 2- Science
+Topic 3- Virtues
+
+
+```{r}
+tidy_plato <- plato %>% 
+  unnest_tokens(word, sentence_str) %>%
+  anti_join(stop_words) 
+
+dtm_plato = tidy_plato %>%
+  count(word, id) %>% 
+  # Cast the word counts into a DTM
+  cast_dtm(id, word, n)
+
+lda_out <- LDA(
+  dtm_plato,
+  k = 3,
+  method = "Gibbs",
+  control = list(seed = 42))
+
+glimpse(lda_out)
+
+# Tidy the matrix of word probabilities
+lda_topics_plato <- lda_out %>% 
+  tidy(matrix = "beta")
+
+# Arrange the topics by word probabilities in descending order
+lda_topics_plato %>% 
+  arrange(desc(beta))  
+
+word_probs_plato <- lda_topics_plato %>% 
+  group_by(topic) %>% 
+  top_n(15, beta) %>% 
+  ungroup() %>%
+  mutate(term2 = fct_reorder(term, beta))
+```
+
+```{r}
+ggplot(
+  word_probs_plato, 
+  aes(term2, beta, fill = as.factor(topic))
+) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+```
+
+```{r}
+tidy_aristotle <- aristotle %>% 
+  unnest_tokens(word, sentence_str) %>%
+  anti_join(stop_words) 
+
+dtm_aristotle = tidy_aristotle %>%
+  count(word, id) %>% 
+  # Cast the word counts into a DTM
+  cast_dtm(id, word, n)
+
+lda_out_1 <- LDA(
+  dtm_aristotle,
+  k = 3,
+  method = "Gibbs",
+  control = list(seed = 42))
+
+glimpse(lda_out_1)
+
+# Tidy the matrix of word probabilities
+lda_topics_aristotle <- lda_out_1 %>% 
+  tidy(matrix = "beta")
+
+# Arrange the topics by word probabilities in descending order
+lda_topics_aristotle %>% 
+  arrange(desc(beta))  
+
+word_probs_aristotle <- lda_topics_aristotle %>% 
+  group_by(topic) %>% 
+  top_n(15, beta) %>% 
+  ungroup() %>%
+  mutate(term3 = fct_reorder(term, beta))
+
+```
+
+```{r}
+ggplot(
+  word_probs_aristotle, 
+  aes(term3, beta, fill = as.factor(topic))
+) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+```
+
+In conclusion, we can see that although Plato had direct influence over Aristotle, their views were drastically different from each other. Plato being the more sentimental one, and Aristotle being the more pragmatic and practical one. 
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
